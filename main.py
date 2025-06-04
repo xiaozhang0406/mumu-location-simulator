@@ -5,6 +5,17 @@ import math
 import os
 import glob
 
+def color_text(text, color_code):
+    return f"\033[{color_code}m{text}\033[0m"
+
+def print_progress_bar(iteration, total, length=30):
+    percent = int(100 * (iteration / total))
+    filled_len = int(length * iteration // total)
+    bar = '█' * filled_len + '-' * (length - filled_len)
+    print(f"\r{color_text('进度', '36')}: |{bar}| {percent}% ({iteration}/{total})", end='', flush=True)
+    if iteration == total:
+        print()  # 换行
+
 def change_location(vm_indexes, longitude, latitude, mumu_path):
     cmd = [
         mumu_path,
@@ -14,14 +25,12 @@ def change_location(vm_indexes, longitude, latitude, mumu_path):
         "-lon", str(longitude),
         "-lat", str(latitude)
     ]
-    # print("执行命令:", " ".join(cmd))
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        # print("执行成功:\n", result.stdout)
-        print("命令执行成功")
+        # print("命令执行成功")
+        pass
     except subprocess.CalledProcessError as e:
-        # print("执行失败:\n", e.stderr)
-        print("命令执行失败")
+        print(color_text("命令执行失败", '31'))
 
 def euclidean_distance(lon1, lat1, lon2, lat2):
     return math.sqrt((lon2 - lon1) ** 2 + (lat2 - lat1) ** 2)
@@ -54,10 +63,13 @@ def interpolate_path(points, max_distance=5, loop=True):
     return new_points
 
 def simulate_path(path_points, vm_indexes, interval, mumu_path):
+    total = len(path_points)
     for idx, (lon, lat) in enumerate(path_points):
-        print(f"坐标 {idx+1}/{len(path_points)}: 经度 {lon}, 纬度 {lat}")
+        print_progress_bar(idx + 1, total)
+        # 可选：显示当前坐标
+        # print(f"坐标 {idx+1}/{total}: 经度 {lon}, 纬度 {lat}")
         change_location(vm_indexes, lon, lat, mumu_path)
-        if idx < len(path_points) - 1:
+        if idx < total - 1:
             time.sleep(interval)
 
 def load_path(max_distance=5, loop=True, location=None):
