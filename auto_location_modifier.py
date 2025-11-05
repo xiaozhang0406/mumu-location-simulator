@@ -4,6 +4,9 @@ import json
 import math
 import os
 import glob
+import sys
+import requests
+from datetime import datetime
 
 def color_text(text, color_code):
     return f"\033[{color_code}m{text}\033[0m"
@@ -74,7 +77,8 @@ def simulate_path(path_points, vm_indexes, interval, mumu_path):
 
 def load_path(max_distance=5, loop=True, location=None):
     try:
-        with open('path.geojson', 'r', encoding='utf-8') as f:
+        geojson_path = resource_path('path.geojson')
+        with open(geojson_path, 'r', encoding='utf-8') as f:
             geo = json.load(f)
         coords = geo['features'][0]['geometry']['coordinates']
         points = [(lon, lat) for lon, lat in coords]
@@ -127,7 +131,8 @@ def load_config():
 
     if config_file:
         try:
-            with open(config_file, "r", encoding="utf-8") as f:
+            config_path = resource_path(config_file)
+            with open(config_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
             default_config.update(config)
         except Exception as e:
@@ -145,8 +150,58 @@ def save_config(config, config_file):
     except Exception as e:
         print("配置文件保存失败：", e)
 
+def get_network_time():
+    apis = [
+        "http://worldtimeapi.org/api/timezone/Etc/UTC",
+        "http://quan.suning.com/getSysTime.do",  # 苏宁时间API
+        "http://api.m.taobao.com/rest/api3.do?api=mtop.common.getTimestamp",  # 淘宝时间API
+    ]
+    for api in apis:
+        try:
+            resp = requests.get(api, timeout=5)
+            resp.raise_for_status()
+            if "worldtimeapi" in api:
+                utc_time_str = resp.json()["utc_datetime"]
+                return datetime.fromisoformat(utc_time_str.replace("Z", "+00:00"))
+            elif "suning" in api:
+                # 返回格式：{"sysTime2":"2024-06-24 17:00:00"}
+                return datetime.strptime(resp.json()["sysTime2"], "%Y-%m-%d %H:%M:%S")
+            elif "taobao" in api:
+                # 返回格式：{"data":{"t":"1720000000000"}}
+                ts = int(resp.json()["data"]["t"]) // 1000
+                return datetime.fromtimestamp(ts)
+        except Exception:
+            continue
+    return None
+
+def check_network_time():
+    return
+    current_time = get_network_time()
+    deadline = datetime(2025, 7, 15)
+    if not current_time:
+        print("无法联网，请重试。")
+        sys.exit(1)
+    if current_time > deadline:
+        print("虚拟机api已过期，请更新程序。")
+        sys.exit(1)
+
+def resource_path(relative_path):
+    """获取资源文件的绝对路径，兼容开发环境和 PyInstaller 打包后的环境"""
+    if hasattr(sys, '_MEIPASS'):
+        # PyInstaller 打包后的临时目录
+        base_path = sys._MEIPASS
+    else:
+        # 源码运行时的目录
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 def main():
+    check_network_time()
     config, config_file = load_config()
+    cfg_path = resource_path('conf/sifang.cfg')
+    with open(cfg_path, 'r', encoding='utf-8') as f:
+        # 你的读取逻辑
+        ...
     while True:
         print("\n==== 自动定位模拟器 ====")
         print("1. 开始模拟")
