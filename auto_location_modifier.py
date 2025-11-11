@@ -7,6 +7,7 @@ import glob
 import sys
 import requests
 from datetime import datetime
+import random
 
 def color_text(text, color_code):
     return f"\033[{color_code}m{text}\033[0m"
@@ -66,12 +67,27 @@ def interpolate_path(points, max_distance=5, loop=True):
     return new_points
 
 def simulate_path(path_points, vm_indexes, interval, mumu_path):
+    meters_to_deg = 1.0 / 111000.0
+
     total = len(path_points)
+    # 每圈的基础偏移（米）
+    base_dlon_m = random.uniform(-2.0, 2.0)
+    base_dlat_m = random.uniform(-2.0, 2.0)
+    base_dlon = base_dlon_m * meters_to_deg
+    base_dlat = base_dlat_m * meters_to_deg
+
     for idx, (lon, lat) in enumerate(path_points):
         print_progress_bar(idx + 1, total)
-        # 可选：显示当前坐标
-        # print(f"坐标 {idx+1}/{total}: 经度 {lon}, 纬度 {lat}")
-        change_location(vm_indexes, lon, lat, mumu_path)
+        # 每个点的额外偏移（米）
+        point_dlon_m = random.uniform(-0.5, 0.5)
+        point_dlat_m = random.uniform(-0.5, 0.5)
+        point_dlon = point_dlon_m * meters_to_deg
+        point_dlat = point_dlat_m * meters_to_deg
+
+        final_lon = lon + base_dlon + point_dlon
+        final_lat = lat + base_dlat + point_dlat
+
+        change_location(vm_indexes, final_lon, final_lat, mumu_path)
         if idx < total - 1:
             time.sleep(interval)
 
