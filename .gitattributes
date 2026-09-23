@@ -1,0 +1,5 @@
+* text=auto
+*.py text eol=lf
+*.spec text eol=lf
+*.cfg.example text eol=lf
+*.geojson text eol=lf

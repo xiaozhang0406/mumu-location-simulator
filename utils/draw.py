@@ -14,8 +14,12 @@ import tkinter as _tk
 from tkinter import simpledialog as _simpledialog
 
 def find_geojson_files(base_dir):
-    pattern = os.path.join(base_dir, '..', 'path', '*.geojson')
-    return sorted(glob.glob(pattern))
+    project_dir = os.path.abspath(os.path.join(base_dir, '..'))
+    files = glob.glob(os.path.join(project_dir, 'path', '*.geojson'))
+    root_path = os.path.join(project_dir, 'path.geojson')
+    if os.path.isfile(root_path):
+        files.append(root_path)
+    return sorted(files)
 
 def load_geojson(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -144,7 +148,7 @@ class DraggablePath:
 
 def choose_file_interactive(files):
     if not files:
-        print("未找到任何 ../path/*.geojson 文件")
+        print("未找到路径文件。请先复制 path.example.geojson 为 path.geojson。")
         sys.exit(1)
     if len(files) == 1:
         print("找到文件:", files[0])
