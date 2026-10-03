@@ -22,3 +22,20 @@ python utils/path_drawing.py conf/default.cfg
 如需打包，可安装 PyInstaller 后运行 `pyinstaller auto_location_modifier.spec`。配置目录和 `path.geojson` 是外部文件，应放在生成的可执行文件旁边；首次运行会创建配置目录和默认配置。
 
 本地配置、路径文件和构建产物已加入 `.gitignore`，可直接在项目目录中使用。
+
+## 离线校验与稳定性
+
+无需安装或启动 MuMu 即可检查配置：
+
+```bash
+python auto_location_modifier.py --check-config conf/example.cfg.example
+python -m unittest discover -s tests -v
+```
+
+配置校验会检查间隔/间距为正的有限数值、经纬度范围、模拟器索引及坐标结构。空路径的模板可通过格式校验，开始模拟前仍要求至少两个路径点以及存在的管理器程序。
+
+配置保存先写临时文件，再原子替换；写入失败保留原文件。坏配置不会被静默替换成默认值，加载失败的路径也不会清空已存路径。MuMu 命令最多等待 15 秒，失败后停止本轮并返回菜单，非循环模式也可用 Ctrl+C 停止。
+
+插值超过 100000 点时会拒绝生成，避免极小间距导致大量内存分配。距离换算仍使用原来的近似算法，不能视作精确测绘结果。
+
+自动测试使用合成坐标和模拟进程，不调用真实 MuMu；真实版本兼容性需在本机管理器中另行验证。
